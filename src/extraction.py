@@ -8,21 +8,24 @@ def extraire_metadonnees(log_text: str) -> Dict[Any, Any]:
     Extrait les métadonnées clés d'une ligne ou d'un bloc de log textuel.
     """
     metadonnees = {}
+    log_sans_secrets = masquer_secrets(log_text)
+    if log_sans_secrets != log_text:
+        metadonnees["token_masque"] = True
 
     # Extraction du niveau de sévérité (LOG, WARNING, ERROR, CRITICAL)
-    match_level = re.search(r"\b(INFO|WARNING|ERROR|CRITICAL)\b", log_text)
+    match_level = re.search(r"\b(INFO|WARNING|ERROR|CRITICAL)\b", log_sans_secrets)
     if match_level:
         metadonnees["level"] = match_level.group(1)
 
     # Extraction du composant/service entre crochets ou clés
-    match_service = re.search(r"\[(.*?)\]", log_text)
+    match_service = re.search(r"\[(.*?)\]", log_sans_secrets)
     if match_service:
         metadonnees["service"] = match_service.group(1)
 
     # Détection de mots-clés d'erreurs ou de procédures
-    if "oomkilled" in log_text.lower():
+    if "oomkilled" in log_sans_secrets.lower():
         metadonnees["action_recommandee"] = "redemarrage_container"
-    elif "disk full" in log_text.lower():
+    elif "disk full" in log_sans_secrets.lower():
         metadonnees["action_recommandee"] = "nettoyage_disque"
 
     return metadonnees

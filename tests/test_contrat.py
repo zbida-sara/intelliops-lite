@@ -10,3 +10,4 @@ def test_niveaux_ordonnes(self):
       self.assertEqual(NIVEAUX[-1], "CRITICAL")
 def test_base_procedures(self):
      self.assertIn("oomkilled", PROCEDURES)
+     

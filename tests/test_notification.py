@@ -2,7 +2,7 @@
 import unittest
 
 from src.contrat import Analyse, Evenement
-from src.notification import choisir_canal, notifier, rediger, valider_action
+from src.notification import choisir_canal, notifier, rediger, tracer_decision, valider_action
 
 def exemple(sensible=True, niveau="CRITICAL"):
     e = Evenement("EVT-00125", "2026-10-05T10:02:11Z", "DOCKER",
@@ -64,3 +64,22 @@ class TestNotification(unittest.TestCase):
     def test_action_non_sensible(self):
         _, analyse = exemple(sensible=False)
         self.assertTrue(valider_action(analyse, "n"))
+
+
+    def test_tracer_decision(self):
+        _, analyse = exemple()
+        journal = []
+
+        decision = tracer_decision(
+            analyse, True, "ops-oncall", journal,
+            "2026-10-05T10:10:00Z"
+        )
+
+        self.assertEqual(decision, {
+            "event_id": "EVT-00125",
+            "action": "Redemarrer le service backend",
+            "approved": True,
+            "actor": "ops-oncall",
+            "timestamp": "2026-10-05T10:10:00Z"
+        })
+        self.assertEqual(journal, [decision])

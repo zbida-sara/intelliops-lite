@@ -28,13 +28,16 @@ def extraire_metadonnees(log_text: str) -> Dict[Any, Any]:
     return metadonnees
 
 
+_PATTERN_SECRET = re.compile(
+    r"(?P<nom>password|passwd|token|secret|api_key|apikey)(?P<sep>\s*[=:]\s*)(?P<val>[^\s&,;]+)",
+    re.IGNORECASE,
+)
+_PATTERN_BEARER = re.compile(r"(?P<pre>\bBearer\s+)(?P<val>[^\s&,;]+)", re.IGNORECASE)
+
 def masquer_secrets(texte: str) -> str:
-    return re.sub(
-        r"\b(password|passwd|token|secret|api_key|apikey)([:=])([^\s&,;]+)",
-        r"\1\2[SECRET]",
-        texte,
-        flags=re.IGNORECASE
-    )
+    texte = _PATTERN_SECRET.sub(lambda m: f"{m.group('nom')}{m.group('sep')}[SECRET]", texte)
+    texte = _PATTERN_BEARER.sub(lambda m: f"{m.group('pre')}[SECRET]", texte)
+    return texte
 
 
 def normaliser_log(ligne: str, numero: int, source: str = "DOCKER",

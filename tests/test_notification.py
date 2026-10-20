@@ -2,7 +2,7 @@
 import unittest
 
 from src.contrat import Analyse, Evenement
-from src.notification import choisir_canal, notifier, rediger
+from src.notification import choisir_canal, notifier, rediger, valider_action
 
 def exemple(sensible=True, niveau="CRITICAL"):
     e = Evenement("EVT-00125", "2026-10-05T10:02:11Z", "DOCKER",
@@ -50,3 +50,17 @@ class TestNotification(unittest.TestCase):
         self.assertEqual(notif.text, rediger(evt, analyse))
         self.assertEqual(evt.status, "NOTIFIED")
         self.assertEqual(historique, [notif])
+
+
+    def test_validation(self):
+        _, analyse = exemple()
+
+        for reponse in ("o", " OUI ", "ok", "YES"):
+            self.assertTrue(valider_action(analyse, reponse))
+
+        self.assertFalse(valider_action(analyse, "n"))
+        self.assertFalse(valider_action(analyse, "non"))
+
+    def test_action_non_sensible(self):
+        _, analyse = exemple(sensible=False)
+        self.assertTrue(valider_action(analyse, "n"))

@@ -1,4 +1,5 @@
 
+from logging import log
 import unittest
 from src.extraction import extraire_metadonnees
 
@@ -24,7 +25,17 @@ class TestExtraction(unittest.TestCase):
 
         self.assertNotIn("level", resultat)
         self.assertNotIn("service", resultat)
+    def test_extraction_bearer_token(self):
+        log = "2026-10-20 10:10:00 [api] ERROR Authorization: Bearer abc123xyz"
+        resultat = extraire_metadonnees(log)
+
+        self.assertEqual(resultat.get("level"), "ERROR")
+        self.assertEqual(resultat.get("service"), "api")
+        # Vérification du correctif de sécurité : le token ne doit pas apparaître en clair
+        self.assertNotIn("abc123xyz", str(resultat))
+        self.assertEqual(resultat.get("token_masque"), True)
 
 
 if __name__ == "__main__":
+
     unittest.main()

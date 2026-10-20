@@ -21,3 +21,15 @@ def rediger(evt: Evenement, analyse: Analyse) -> str:
         f"Action proposee : {analyse.action}\n"
         f"Sources : {', '.join(analyse.sources)}"
     )
+
+
+def notifier(evt: Evenement, analyse: Analyse, historique: list) -> Notification:
+    notif = Notification(
+        evt.id,
+        choisir_canal(analyse.level),
+        "equipe-ops",
+        rediger(evt, analyse)
+    )
+    historique.append(notif)
+    evt.status = "NOTIFIED"
+    return notif

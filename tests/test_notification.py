@@ -2,7 +2,7 @@
 import unittest
 
 from src.contrat import Analyse, Evenement
-from src.notification import choisir_canal, rediger
+from src.notification import choisir_canal, notifier, rediger
 
 def exemple(sensible=True, niveau="CRITICAL"):
     e = Evenement("EVT-00125", "2026-10-05T10:02:11Z", "DOCKER",
@@ -36,3 +36,17 @@ class TestNotification(unittest.TestCase):
             "Action proposee : Redemarrer le service backend",
             "Sources : DOCKER"
         ])
+
+
+    def test_notifier(self):
+        evt, analyse = exemple()
+        historique = []
+
+        notif = notifier(evt, analyse, historique)
+
+        self.assertEqual(notif.event_id, evt.id)
+        self.assertEqual(notif.channel, "TEAMS")
+        self.assertEqual(notif.recipient, "equipe-ops")
+        self.assertEqual(notif.text, rediger(evt, analyse))
+        self.assertEqual(evt.status, "NOTIFIED")
+        self.assertEqual(historique, [notif])

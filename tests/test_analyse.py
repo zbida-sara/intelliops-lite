@@ -47,3 +47,29 @@ class TestAnalyse(unittest.TestCase):
 
     def test_chercher_procedures_vide(self):
         self.assertEqual(chercher_procedures(evt(message="rien"), PROCEDURES), [])
+
+    def test_classifier_boucle(self):
+        e = evt()
+        self.assertEqual(classifier(e, 3), "CRITICAL")
+        self.assertEqual(classifier(e, 2), "HIGH")
+
+    def test_classifier_severite_par_defaut(self):
+        self.assertEqual(classifier(evt(severity="MEDIUM")), "MEDIUM")
+
+    def test_analyser_critical_sensible(self):
+        e = evt()
+        a = analyser(e, PROCEDURES, 3)
+        self.assertEqual(a.level, "CRITICAL")
+        self.assertEqual(a.action, "Redemarrer le service backend")
+        self.assertTrue(a.sensitive)
+        self.assertEqual(a.sources, ["DOCKER"])
+        self.assertEqual(e.status, "ANALYZED")
+
+    def test_analyser_cause_inconnue(self):
+        a = analyser(evt(severity="LOW", message="Service demarre"), PROCEDURES)
+        self.assertEqual(a.explanation, "Cause inconnue : analyse manuelle requise")
+        self.assertEqual(a.action, "Surveiller")
+        self.assertFalse(a.sensitive)
+
+if __name__ == "__main__":
+    unittest.main()

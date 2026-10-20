@@ -71,5 +71,18 @@ class TestAnalyse(unittest.TestCase):
         self.assertEqual(a.action, "Surveiller")
         self.assertFalse(a.sensitive)
 
+    def test_analyser_vulnerabilite(self):
+        e = evt(type_="VULNERABILITY", severity="CRITICAL", composant="lib-xyz",
+                message="Vulnerabilite CVE-1 dans lib-xyz")
+        a = analyser(e, PROCEDURES)
+        self.assertEqual(a.action, "Mettre a jour la dependance lib-xyz")
+        self.assertFalse(a.sensitive)
+
+    def test_analyser_pipeline(self):
+        e = evt(type_="PIPELINE_FAILURE", composant="build", message="Pipeline build : failed")
+        a = analyser(e, PROCEDURES)
+        self.assertEqual(a.action, "Relancer le pipeline build")
+        self.assertIn(PROCEDURES["pipeline"], a.explanation)
+
 if __name__ == "__main__":
     unittest.main()

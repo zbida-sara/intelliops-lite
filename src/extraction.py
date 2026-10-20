@@ -8,33 +8,39 @@ def extraire_metadonnees(log_text: str) -> Dict[Any, Any]:
     Extrait les métadonnées clés d'une ligne ou d'un bloc de log textuel.
     """
     metadonnees = {}
+    log_sans_secrets = masquer_secrets(log_text)
+    if log_sans_secrets != log_text:
+        metadonnees["token_masque"] = True
 
     # Extraction du niveau de sévérité (LOG, WARNING, ERROR, CRITICAL)
-    match_level = re.search(r"\b(INFO|WARNING|ERROR|CRITICAL)\b", log_text)
+    match_level = re.search(r"\b(INFO|WARNING|ERROR|CRITICAL)\b", log_sans_secrets)
     if match_level:
         metadonnees["level"] = match_level.group(1)
 
     # Extraction du composant/service entre crochets ou clés
-    match_service = re.search(r"\[(.*?)\]", log_text)
+    match_service = re.search(r"\[(.*?)\]", log_sans_secrets)
     if match_service:
         metadonnees["service"] = match_service.group(1)
 
     # Détection de mots-clés d'erreurs ou de procédures
-    if "oomkilled" in log_text.lower():
+    if "oomkilled" in log_sans_secrets.lower():
         metadonnees["action_recommandee"] = "redemarrage_container"
-    elif "disk full" in log_text.lower():
+    elif "disk full" in log_sans_secrets.lower():
         metadonnees["action_recommandee"] = "nettoyage_disque"
 
     return metadonnees
 
 
+_PATTERN_SECRET = re.compile(
+    r"(?P<nom>password|passwd|token|secret|api_key|apikey)(?P<sep>\s*[=:]\s*)(?P<val>[^\s&,;]+)",
+    re.IGNORECASE,
+)
+_PATTERN_BEARER = re.compile(r"(?P<pre>\bBearer\s+)(?P<val>[^\s&,;]+)", re.IGNORECASE)
+
 def masquer_secrets(texte: str) -> str:
-    return re.sub(
-        r"\b(password|passwd|token|secret|api_key|apikey)([:=])([^\s&,;]+)",
-        r"\1\2[SECRET]",
-        texte,
-        flags=re.IGNORECASE
-    )
+    texte = _PATTERN_SECRET.sub(lambda m: f"{m.group('nom')}{m.group('sep')}[SECRET]", texte)
+    texte = _PATTERN_BEARER.sub(lambda m: f"{m.group('pre')}[SECRET]", texte)
+    return texte
 
 
 def normaliser_log(ligne: str, numero: int, source: str = "DOCKER",

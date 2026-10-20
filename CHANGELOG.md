@@ -1,5 +1,6 @@
 # Changelog
 ## [Non publie]
+## [1.0.0] - 2026-10-20
 - Agent Analyse : filtrage et classification (B)
 - Agent Notification : canaux, redaction, historique, validation humaine et audit (C).
 - Agent Extraction : implementation de la fonction `extraire_metadonnees` pour analyser les niveaux de severite, les services et detecter les procedures recommandees dans les logs (A).

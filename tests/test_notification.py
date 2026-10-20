@@ -1,0 +1,85 @@
+
+import unittest
+
+from src.contrat import Analyse, Evenement
+from src.notification import choisir_canal, notifier, rediger, tracer_decision, valider_action
+
+def exemple(sensible=True, niveau="CRITICAL"):
+    e = Evenement("EVT-00125", "2026-10-05T10:02:11Z", "DOCKER",
+                  "backend", "production", "LOG", "HIGH",
+                  "OOMKilled restarts=14")
+    a = Analyse("EVT-00125", niveau, "Manque de memoire",
+                "Redemarrer le service backend", sensible, ["DOCKER"])
+    return e, a
+
+
+class TestNotification(unittest.TestCase):
+    def test_canaux(self):
+        self.assertEqual(choisir_canal("CRITICAL"), "TEAMS")
+        self.assertEqual(choisir_canal("HIGH"), "SLACK")
+        self.assertEqual(choisir_canal("MEDIUM"), "EMAIL")
+        self.assertEqual(choisir_canal("LOW"), "DASHBOARD")
+
+    def test_canal_invalide(self):
+        with self.assertRaises(ValueError):
+            choisir_canal("UNKNOWN")
+
+
+    def test_rediger(self):
+        evt, analyse = exemple()
+        texte = rediger(evt, analyse)
+
+        self.assertEqual(texte.splitlines(), [
+            "[CRITICAL] Composant : backend",
+            "Evenement : OOMKilled restarts=14",
+            "Explication : Manque de memoire",
+            "Action proposee : Redemarrer le service backend",
+            "Sources : DOCKER"
+        ])
+
+
+    def test_notifier(self):
+        evt, analyse = exemple()
+        historique = []
+
+        notif = notifier(evt, analyse, historique)
+
+        self.assertEqual(notif.event_id, evt.id)
+        self.assertEqual(notif.channel, "TEAMS")
+        self.assertEqual(notif.recipient, "equipe-ops")
+        self.assertEqual(notif.text, rediger(evt, analyse))
+        self.assertEqual(evt.status, "NOTIFIED")
+        self.assertEqual(historique, [notif])
+
+
+    def test_validation(self):
+        _, analyse = exemple()
+
+        for reponse in ("o", " OUI ", "ok", "YES"):
+            self.assertTrue(valider_action(analyse, reponse))
+
+        self.assertFalse(valider_action(analyse, "n"))
+        self.assertFalse(valider_action(analyse, "non"))
+
+    def test_action_non_sensible(self):
+        _, analyse = exemple(sensible=False)
+        self.assertTrue(valider_action(analyse, "n"))
+
+
+    def test_tracer_decision(self):
+        _, analyse = exemple()
+        journal = []
+
+        decision = tracer_decision(
+            analyse, True, "ops-oncall", journal,
+            "2026-10-05T10:10:00Z"
+        )
+
+        self.assertEqual(decision, {
+            "event_id": "EVT-00125",
+            "action": "Redemarrer le service backend",
+            "approved": True,
+            "actor": "ops-oncall",
+            "timestamp": "2026-10-05T10:10:00Z"
+        })
+        self.assertEqual(journal, [decision])
